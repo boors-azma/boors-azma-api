@@ -37,6 +37,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/api/v1/auth/register",
                                 "/api/v1/auth/login",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -57,7 +58,8 @@ public class SecurityConfig {
 
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenService jwtTokenService,
-                                                           AppUserDetailsService appUserDetailsService) {
-        return new JwtAuthenticationFilter(jwtTokenService, appUserDetailsService);
+                                                           AppUserDetailsService appUserDetailsService,
+                                                           RevokedTokenService revokedTokenService) {
+        return new JwtAuthenticationFilter(jwtTokenService, appUserDetailsService, revokedTokenService);
     }
 }

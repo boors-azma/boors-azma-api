@@ -1,5 +1,6 @@
 package com.ernoxin.boorsazmaapi.service;
 
+import com.ernoxin.boorsazmaapi.dto.UserCreateRequest;
 import com.ernoxin.boorsazmaapi.dto.auth.AuthTokenResponse;
 import com.ernoxin.boorsazmaapi.dto.auth.LoginRequest;
 import com.ernoxin.boorsazmaapi.exception.InvalidCredentialsException;
@@ -7,6 +8,7 @@ import com.ernoxin.boorsazmaapi.model.User;
 import com.ernoxin.boorsazmaapi.repository.UserRepository;
 import com.ernoxin.boorsazmaapi.security.AppUserPrincipal;
 import com.ernoxin.boorsazmaapi.security.JwtTokenService;
+import com.ernoxin.boorsazmaapi.security.RevokedTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,8 +22,21 @@ import java.time.Instant;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenService jwtTokenService;
+    private final RevokedTokenService revokedTokenService;
+
+    @Override
+    @Transactional
+    public AuthTokenResponse register(UserCreateRequest request) {
+        userService.create(request);
+
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setIdentifier(request.getEmail());
+        loginRequest.setPassword(request.getPassword());
+        return login(loginRequest);
+    }
 
     @Override
     @Transactional
@@ -46,7 +61,10 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout() {
+    public void logout(String bearerToken) {
+        if (bearerToken != null && jwtTokenService.isValid(bearerToken)) {
+            revokedTokenService.revoke(bearerToken, jwtTokenService.extractExpiration(bearerToken));
+        }
         SecurityContextHolder.clearContext();
     }
 }

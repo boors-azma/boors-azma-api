@@ -50,6 +50,12 @@ public class JwtTokenService {
         return Long.parseLong(claims.getSubject());
     }
 
+    public Instant extractExpiration(String token) {
+        Claims claims = parseClaims(token);
+        Date expiration = claims.getExpiration();
+        return expiration.toInstant();
+    }
+
     public boolean isValid(String token) {
         try {
             parseClaims(token);

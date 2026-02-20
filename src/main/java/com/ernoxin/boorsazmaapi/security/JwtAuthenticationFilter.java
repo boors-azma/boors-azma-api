@@ -18,6 +18,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenService jwtTokenService;
     private final AppUserDetailsService userDetailsService;
+    private final RevokedTokenService revokedTokenService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -30,6 +31,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authorization.substring(7);
         if (!jwtTokenService.isValid(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        if (revokedTokenService.isRevoked(token)) {
             filterChain.doFilter(request, response);
             return;
         }

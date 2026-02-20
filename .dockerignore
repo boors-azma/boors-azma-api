@@ -1,0 +1,15 @@
+.git
+.gitignore
+.idea
+.vscode
+.mvn
+target
+*.iml
+*.log
+.DS_Store
+._*
+**/._*
+
+README*
+*.md
+docker-compose*
