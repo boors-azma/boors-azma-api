@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
         userService.create(request);
 
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setIdentifier(request.getEmail());
+        loginRequest.setIdentifier(request.getUsername());
         loginRequest.setPassword(request.getPassword());
         return login(loginRequest);
     }
@@ -41,7 +42,8 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthTokenResponse login(LoginRequest request) {
-        User user = userRepository.findByEmailOrPhoneNumber(request.getIdentifier(), request.getIdentifier())
+        String normalizedIdentifier = request.getIdentifier().trim().toLowerCase(Locale.ROOT);
+        User user = userRepository.findByUsernameOrEmail(normalizedIdentifier, normalizedIdentifier)
                 .orElseThrow(InvalidCredentialsException::new);
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {

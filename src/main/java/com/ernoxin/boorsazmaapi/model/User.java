@@ -14,6 +14,11 @@ import lombok.EqualsAndHashCode;
 public class User extends BaseEntity<Long> {
 
     @NotBlank
+    @Pattern(regexp = "^[A-Za-z0-9._-]{3,50}$")
+    @Column(unique = true)
+    private String username;
+
+    @NotBlank
     @Column(nullable = false)
     private String firstName;
 
@@ -22,11 +27,11 @@ public class User extends BaseEntity<Long> {
     private String lastName;
 
     @Pattern(regexp = "^\\d{10}$")
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String nationalCode;
 
     @Pattern(regexp = "^\\+98\\d{10}$")
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String phoneNumber;
 
     @Email

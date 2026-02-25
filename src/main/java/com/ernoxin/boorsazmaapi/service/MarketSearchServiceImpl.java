@@ -16,6 +16,7 @@ import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,8 +49,21 @@ public class MarketSearchServiceImpl implements MarketSearchService {
 
         CsvCache csvCache = getCsvCache();
         return csvCache.rows().stream()
-                .filter(row -> matches(row, normalizedQueries, csvCache.symbolHeader(), csvCache.nameHeader()))
-                .map(row -> convertRow(row, csvCache.oldInscodesHeader()))
+                .map(row -> new SearchCandidate(
+                        row,
+                        computeRelevanceScore(row, normalizedQueries, csvCache.symbolHeader(), csvCache.nameHeader()),
+                        normalize(getColumnValue(row, csvCache.symbolHeader())),
+                        normalize(getColumnValue(row, csvCache.nameHeader()))
+                ))
+                .filter(candidate -> candidate.score() > 0)
+                .sorted(
+                        Comparator.comparingInt(SearchCandidate::score).reversed()
+                                .thenComparingInt(candidate -> candidate.symbol().isBlank() ? Integer.MAX_VALUE : candidate.symbol().length())
+                                .thenComparingInt(candidate -> candidate.name().isBlank() ? Integer.MAX_VALUE : candidate.name().length())
+                                .thenComparing(SearchCandidate::symbol)
+                                .thenComparing(SearchCandidate::name)
+                )
+                .map(candidate -> convertRow(candidate.row(), csvCache.oldInscodesHeader()))
                 .toList();
     }
 
@@ -142,20 +156,47 @@ public class MarketSearchServiceImpl implements MarketSearchService {
                 .toList();
     }
 
-    private boolean matches(Map<String, String> row,
-                            List<String> normalizedQueries,
-                            String symbolHeader,
-                            String nameHeader) {
+    private int computeRelevanceScore(Map<String, String> row,
+                                      List<String> normalizedQueries,
+                                      String symbolHeader,
+                                      String nameHeader) {
         String symbol = normalize(getColumnValue(row, symbolHeader));
         String name = normalize(getColumnValue(row, nameHeader));
+        String allValues = normalize(String.join(" ", row.values()));
 
         if (symbol.isBlank() && name.isBlank()) {
-            String allValues = normalize(String.join(" ", row.values()));
-            return normalizedQueries.stream().anyMatch(allValues::contains);
+            return normalizedQueries.stream()
+                    .mapToInt(query -> scoreMatch(allValues, query, 10, 8, 3))
+                    .sum();
         }
 
-        return normalizedQueries.stream()
-                .anyMatch(query -> symbol.contains(query) || name.contains(query));
+        int score = 0;
+        for (String query : normalizedQueries) {
+            score += scoreMatch(symbol, query, 1200, 900, 350);
+            score += scoreMatch(name, query, 600, 420, 170);
+            score += scoreMatch(allValues, query, 8, 6, 2);
+        }
+        return score;
+    }
+
+    private int scoreMatch(String value,
+                           String query,
+                           int exactScore,
+                           int prefixScore,
+                           int containsScore) {
+        if (value == null || value.isBlank() || query == null || query.isBlank()) {
+            return 0;
+        }
+        if (value.equals(query)) {
+            return exactScore;
+        }
+        if (value.startsWith(query)) {
+            return prefixScore;
+        }
+        if (value.contains(query)) {
+            return containsScore;
+        }
+        return 0;
     }
 
     private String getColumnValue(Map<String, String> row, String key) {
@@ -263,6 +304,14 @@ public class MarketSearchServiceImpl implements MarketSearchService {
             return "";
         }
         return value.charAt(0) == '\uFEFF' ? value.substring(1) : value;
+    }
+
+    private record SearchCandidate(
+            Map<String, String> row,
+            int score,
+            String symbol,
+            String name
+    ) {
     }
 
     private record CsvCache(

@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +28,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse create(UserCreateRequest request) {
+        normalizeRequestForPersistence(request);
         validateUniqueFieldsForCreate(request);
         User user = userMapper.toEntity(request);
         user.setRole(UserRole.USER);
@@ -48,6 +50,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse update(UserUpdateRequest request) {
         validateOwnerOrAdmin(request.getId());
+        normalizeRequestForPersistence(request);
         User user = findById(request.getId());
         validateUniqueFieldsForUpdate(request);
         userMapper.updateEntity(request, user);
@@ -70,27 +73,64 @@ public class UserServiceImpl implements UserService {
     }
 
     private void validateUniqueFieldsForCreate(UserCreateRequest request) {
-        if (userRepository.existsByNationalCode(request.getNationalCode())) {
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new DuplicateResourceException("نام کاربری واردشده قبلا ثبت شده است.");
+        }
+        if (request.getNationalCode() != null && userRepository.existsByNationalCode(request.getNationalCode())) {
             throw new DuplicateResourceException("کد ملی واردشده قبلا ثبت شده است.");
         }
-        if (userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+        if (request.getPhoneNumber() != null && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
             throw new DuplicateResourceException("شماره موبایل واردشده قبلا ثبت شده است.");
         }
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("ایمیل واردشده قبلا ثبت شده است.");
         }
     }
 
     private void validateUniqueFieldsForUpdate(UserUpdateRequest request) {
-        if (userRepository.existsByNationalCodeAndIdNot(request.getNationalCode(), request.getId())) {
+        if (userRepository.existsByUsernameAndIdNot(request.getUsername(), request.getId())) {
+            throw new DuplicateResourceException("نام کاربری واردشده قبلا ثبت شده است.");
+        }
+        if (request.getNationalCode() != null
+                && userRepository.existsByNationalCodeAndIdNot(request.getNationalCode(), request.getId())) {
             throw new DuplicateResourceException("کد ملی واردشده قبلا ثبت شده است.");
         }
-        if (userRepository.existsByPhoneNumberAndIdNot(request.getPhoneNumber(), request.getId())) {
+        if (request.getPhoneNumber() != null
+                && userRepository.existsByPhoneNumberAndIdNot(request.getPhoneNumber(), request.getId())) {
             throw new DuplicateResourceException("شماره موبایل واردشده قبلا ثبت شده است.");
         }
-        if (userRepository.existsByEmailAndIdNot(request.getEmail(), request.getId())) {
+        if (request.getEmail() != null && userRepository.existsByEmailAndIdNot(request.getEmail(), request.getId())) {
             throw new DuplicateResourceException("ایمیل واردشده قبلا ثبت شده است.");
         }
+    }
+
+    private void normalizeRequestForPersistence(UserCreateRequest request) {
+        request.setUsername(normalizeUsername(request.getUsername()));
+        request.setEmail(normalizeEmail(request.getEmail()));
+        request.setNationalCode(normalizeOptional(request.getNationalCode()));
+        request.setPhoneNumber(normalizeOptional(request.getPhoneNumber()));
+    }
+
+    private void normalizeRequestForPersistence(UserUpdateRequest request) {
+        request.setUsername(normalizeUsername(request.getUsername()));
+        request.setEmail(normalizeEmail(request.getEmail()));
+        request.setNationalCode(normalizeOptional(request.getNationalCode()));
+        request.setPhoneNumber(normalizeOptional(request.getPhoneNumber()));
+    }
+
+    private String normalizeUsername(String value) {
+        return value == null ? null : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeEmail(String value) {
+        String normalized = normalizeOptional(value);
+        return normalized == null ? null : normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizeOptional(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     private void validateOwnerOrAdmin(Long targetUserId) {

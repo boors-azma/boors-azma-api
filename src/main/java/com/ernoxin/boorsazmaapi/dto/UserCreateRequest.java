@@ -10,22 +10,23 @@ import lombok.Setter;
 @Getter
 public class UserCreateRequest {
 
+    @NotBlank(message = "نام کاربری نباید خالی باشد.")
+    @Pattern(regexp = "^[A-Za-z0-9._-]{3,50}$", message = "نام کاربری باید ۳ تا ۵۰ کاراکتر و شامل حروف انگلیسی، عدد یا . _ - باشد.")
+    private String username;
+
     @NotBlank(message = "نام نباید خالی باشد.")
     private String firstName;
 
     @NotBlank(message = "نام خانوادگی نباید خالی باشد.")
     private String lastName;
 
-    @NotBlank(message = "کد ملی نباید خالی باشد.")
-    @Pattern(regexp = "^\\d{10}$", message = "کد ملی باید دقیقا ۱۰ رقم باشد.")
+    @Pattern(regexp = "^$|^\\d{10}$", message = "کد ملی باید دقیقا ۱۰ رقم باشد.")
     private String nationalCode;
 
-    @NotBlank(message = "شماره موبایل نباید خالی باشد.")
-    @Pattern(regexp = "^\\+98\\d{10}$", message = "شماره موبایل باید با +98 شروع شود و ۱۰ رقم بعد از آن داشته باشد.")
+    @Pattern(regexp = "^$|^\\+98\\d{10}$", message = "شماره موبایل باید با +98 شروع شود و ۱۰ رقم بعد از آن داشته باشد.")
     private String phoneNumber;
 
-    @NotBlank(message = "ایمیل نباید خالی باشد.")
-    @Pattern(regexp = "^[A-Za-z0-9._%+-]+@gmail\\.com$", message = "ایمیل باید از نوع gmail.com باشد.")
+    @Pattern(regexp = "^$|^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "ایمیل واردشده معتبر نیست.")
     private String email;
 
     @NotBlank(message = "رمز عبور نباید خالی باشد.")

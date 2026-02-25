@@ -9,7 +9,7 @@ import lombok.Setter;
 @Setter
 public class LoginRequest {
 
-    @NotBlank(message = "ایمیل یا شماره موبایل نباید خالی باشد.")
+    @NotBlank(message = "نام کاربری یا ایمیل نباید خالی باشد.")
     private String identifier;
 
     @NotBlank(message = "رمز عبور نباید خالی باشد.")

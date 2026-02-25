@@ -34,6 +34,7 @@ public class JwtTokenService {
         return Jwts.builder()
                 .subject(String.valueOf(principal.getId()))
                 .claim("role", principal.getRole().name())
+                .claim("username", principal.getUsername())
                 .claim("email", principal.getEmail())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiresAt))
